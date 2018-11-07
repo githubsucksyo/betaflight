@@ -543,10 +543,21 @@ void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
+    uint16_t linestart = 0;
+    uint16_t index;
+
     for (int i = 0; *(buff+i); i++) {
-        if (x+i < CHARS_PER_LINE) {// Do not write over screen
-            screenBuffer[y*CHARS_PER_LINE+x+i] = *(buff+i);
+        if (*(buff+i) == '\n') {
+            y++;
+            linestart = i+1;
+            continue;
         }
+        index = y*CHARS_PER_LINE+x+(i-linestart);
+        if (index >= VIDEO_BUFFER_CHARS_PAL)
+            break;  // Don't overflow the buffer?
+        if (((i-linestart)+x) < CHARS_PER_LINE) {
+            screenBuffer[index] = *(buff+i);
+        }  // No wrapping I guess?
     }
 }
 
