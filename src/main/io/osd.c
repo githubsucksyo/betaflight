@@ -581,7 +581,8 @@ static bool osdDrawSingleElement(uint8_t item)
             if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 strcpy(buff, "!FS!");
             } else if (FLIGHT_MODE(ANGLE_MODE)) {
-                strcpy(buff, "STAB");
+                strcpy(buff, "SAFE");
+                buff[3] = SYM_BATT_FULL;  // upper case 'E' stuffed here
             } else if (FLIGHT_MODE(HORIZON_MODE)) {
                 strcpy(buff, "HOR ");
             } else if (FLIGHT_MODE(GPS_RESCUE_MODE)) {
@@ -589,9 +590,9 @@ static bool osdDrawSingleElement(uint8_t item)
             } else if (IS_RC_MODE_ACTIVE(BOXACROTRAINER)) {
                 strcpy(buff, "ATRN");
             } else if (isAirmodeActive()) {
-                strcpy(buff, "AIR ");
+                strcpy(buff, "AS3X");
             } else {
-                strcpy(buff, "ACRO");
+                strcpy(buff, "AS3X");
             }
 
             break;
@@ -636,13 +637,8 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_VTX_CHANNEL:
         {
             const char vtxBandLetter = vtx58BandLetter[vtxSettingsConfig()->band];
-            const char *vtxChannelName = vtx58ChannelNames[vtxSettingsConfig()->channel];
-            uint8_t vtxPower = vtxSettingsConfig()->power;
-            const vtxDevice_t *vtxDevice = vtxCommonDevice();
-            if (vtxDevice && vtxSettingsConfig()->lowPowerDisarm) {
-                vtxCommonGetPowerIndex(vtxDevice, &vtxPower);
-            }
-            tfp_sprintf(buff, "%c:%s:%1d", vtxBandLetter, vtxChannelName, vtxPower);
+            tfp_sprintf(buff, "%c\n%4d", vtxBandLetter,
+                vtx58_Bandchan2Freq(vtxSettingsConfig()->band, vtxSettingsConfig()->channel));
             break;
         }
 #endif
@@ -870,8 +866,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AVG_CELL_VOLTAGE:
         {
             const int cellV = osdGetBatteryAverageCellVoltage();
-            buff[0] = osdGetBatterySymbol(cellV);
-            tfp_sprintf(buff + 1, "%d.%02d%c", cellV / 100, cellV % 100, SYM_VOLT);
+            tfp_sprintf(buff, "%d.%01d%c", cellV / 100, (cellV % 100)/10, SYM_VOLT);
             break;
         }
 
@@ -1160,12 +1155,11 @@ void osdUpdateAlarms(void)
         CLR_BLINK(OSD_WARNINGS);
     }
 
+    CLR_BLINK(OSD_AVG_CELL_VOLTAGE);
     if (getBatteryState() == BATTERY_OK) {
         CLR_BLINK(OSD_MAIN_BATT_VOLTAGE);
-        CLR_BLINK(OSD_AVG_CELL_VOLTAGE);
     } else {
         SET_BLINK(OSD_MAIN_BATT_VOLTAGE);
-        SET_BLINK(OSD_AVG_CELL_VOLTAGE);
     }
 
     if (STATE(GPS_FIX) == 0) {
